@@ -95,16 +95,16 @@ export default function InboxPRList({ selectedRepo, onViewDiff }: InboxPRListPro
       'completed': 'bg-gray-100 text-gray-800 border-gray-200',
       'error': 'bg-red-100 text-red-800 border-red-200'
     }
-    
+
     const labels = {
       'requires-action': 'Requires Action',
       'in-progress': 'In Progress',
       'completed': 'Completed',
       'error': 'Error'
     }
-    
+
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full border ${styles[status]}`}>
+      <span className={`px-3 py-1 text-xs font-semibold rounded-full border-2 ${styles[status]}`}>
         {labels[status]}
       </span>
     )
@@ -133,10 +133,10 @@ export default function InboxPRList({ selectedRepo, onViewDiff }: InboxPRListPro
     }
   }
 
-  const allPRs = selectedRepo ? (mockPRsByRepo[selectedRepo] || []) : 
+  const allPRs = selectedRepo ? (mockPRsByRepo[selectedRepo] || []) :
     Object.values(mockPRsByRepo).flat()
 
-  const filteredPRs = allPRs.filter(pr => 
+  const filteredPRs = allPRs.filter(pr =>
     activeFilter === 'all' || pr.status === activeFilter
   )
 
@@ -176,14 +176,13 @@ export default function InboxPRList({ selectedRepo, onViewDiff }: InboxPRListPro
             <button
               key={filter.key}
               onClick={() => setActiveFilter(filter.key)}
-              className={`flex items-center gap-2 px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                activeFilter === filter.key
-                  ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-md transition-colors text-sm ${activeFilter === filter.key
+                  ? 'bg-white text-gray-900 font-semibold shadow-sm border border-gray-200'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-white'
-              }`}
+                }`}
             >
-              <span className="text-xs">{filter.icon}</span>
-              <span>{filter.label}</span>
+              <span className="text-xl">{filter.icon}</span>
+              <span className="tracking-tight">{filter.label}</span>
               <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
                 {getStatusCount(filter.key)}
               </span>
@@ -234,7 +233,7 @@ export default function InboxPRList({ selectedRepo, onViewDiff }: InboxPRListPro
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-4 ml-4">
                     {getStatusBadge(pr.status)}
                     <div className="text-right">
