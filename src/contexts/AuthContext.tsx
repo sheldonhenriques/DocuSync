@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 interface AuthContextType {
   user: User | null
   session: Session | null
+  githubToken: string | null
   loading: boolean
   signInWithGitHub: () => Promise<void>
   signOut: () => Promise<void>
@@ -17,12 +18,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
+  const [githubToken, setGithubToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
+      setGithubToken(session?.provider_token ?? null)
       setLoading(false)
     })
 
@@ -31,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
+      setGithubToken(session?.provider_token ?? null)
       setLoading(false)
     })
 
@@ -39,20 +43,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGitHub = async () => {
     const redirectTo = `${window.location.origin}/auth/callback`
-    console.log('Starting GitHub OAuth with redirect:', redirectTo)
-    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
         redirectTo
       }
     })
-    
-    console.log('OAuth response:', { data, error })
-    if (error) {
-      console.error('OAuth initiation error:', error)
-      throw error
-    }
+    if (error) throw error
   }
 
   const signOut = async () => {
@@ -60,21 +57,181 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error
   }
 
-  const value = {
-    user,
-    session,
-    loading,
-    signInWithGitHub,
-    signOut,
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, session, githubToken, loading, signInWithGitHub, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider')
   return context
 }
+
+// 'use client'
+
+// import { createContext, useContext, useEffect, useState } from 'react'
+// import { User, Session } from '@supabase/supabase-js'
+// import { supabase } from '@/lib/supabase'
+
+// interface AuthContextType {
+//   user: User | null
+//   session: Session | null
+//   githubToken: string | null  // ✅ GitHub access token
+//   loading: boolean
+//   signInWithGitHub: () => Promise<void>
+//   signOut: () => Promise<void>
+// }
+
+// const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+// export function AuthProvider({ children }: { children: React.ReactNode }) {
+//   const [user, setUser] = useState<User | null>(null)
+//   const [session, setSession] = useState<Session | null>(null)
+//   const [githubToken, setGithubToken] = useState<string | null>(null)
+//   const [loading, setLoading] = useState(true)
+
+//   useEffect(() => {
+//     supabase.auth.getSession().then(({ data: { session } }) => {
+//       setSession(session)
+//       setUser(session?.user ?? null)
+//       setGithubToken(session?.provider_token ?? null)  // ✅ set GitHub token
+//       setLoading(false)
+//     })
+
+//     const {
+//       data: { subscription },
+//     } = supabase.auth.onAuthStateChange((_event, session) => {
+//       setSession(session)
+//       setUser(session?.user ?? null)
+//       setGithubToken(session?.provider_token ?? null)  // ✅ update GitHub token
+//       setLoading(false)
+//     })
+
+//     return () => subscription.unsubscribe()
+//   }, [])
+
+//   const signInWithGitHub = async () => {
+//     const redirectTo = `${window.location.origin}/auth/callback`
+//     console.log('Starting GitHub OAuth with redirect:', redirectTo)
+
+//     const { data, error } = await supabase.auth.signInWithOAuth({
+//       provider: 'github',
+//       options: {
+//         redirectTo
+//       }
+//     })
+
+//     console.log('📦 Supabase generated redirect URL:', data?.url)
+//     console.log('⚠️ OAuth error (if any):', error)
+//     if (error) throw error
+//   }
+
+//   const signOut = async () => {
+//     const { error } = await supabase.auth.signOut()
+//     if (error) throw error
+//   }
+
+//   const value = {
+//     user,
+//     session,
+//     githubToken, // ✅ exposed
+//     loading,
+//     signInWithGitHub,
+//     signOut,
+//   }
+
+//   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+// }
+
+// export function useAuth() {
+//   const context = useContext(AuthContext)
+//   if (context === undefined) {
+//     throw new Error('useAuth must be used within an AuthProvider')
+//   }
+//   return context
+// }
+
+// 'use client'
+
+// import { createContext, useContext, useEffect, useState } from 'react'
+// import { User, Session } from '@supabase/supabase-js'
+// import { supabase } from '@/lib/supabase'
+
+// interface AuthContextType {
+//   user: User | null
+//   session: Session | null
+//   loading: boolean
+//   signInWithGitHub: () => Promise<void>
+//   signOut: () => Promise<void>
+// }
+
+// const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+// export function AuthProvider({ children }: { children: React.ReactNode }) {
+//   const [user, setUser] = useState<User | null>(null)
+//   const [session, setSession] = useState<Session | null>(null)
+//   const [loading, setLoading] = useState(true)
+
+//   useEffect(() => {
+//     supabase.auth.getSession().then(({ data: { session } }) => {
+//       setSession(session)
+//       setUser(session?.user ?? null)
+//       setLoading(false)
+//     })
+
+//     const {
+//       data: { subscription },
+//     } = supabase.auth.onAuthStateChange((_event, session) => {
+//       setSession(session)
+//       setUser(session?.user ?? null)
+//       setLoading(false)
+//     })
+
+//     return () => subscription.unsubscribe()
+//   }, [])
+  
+//   const signInWithGitHub = async () => {
+//     const redirectTo = `${window.location.origin}/auth/callback`
+//     console.log('Starting GitHub OAuth with redirect:', redirectTo)
+    
+//     const { data, error } = await supabase.auth.signInWithOAuth({
+//       provider: 'github',
+//       options: {
+//         redirectTo
+//       }
+//     })
+//     console.log('📦 Supabase generated redirect URL:', data?.url)
+//     console.log('⚠️ OAuth error (if any):', error)
+//     console.log('OAuth response:', { data, error })
+//     if (error) {
+//       console.error('OAuth initiation error:', error)
+//       throw error
+//     }
+//   }
+
+//   const signOut = async () => {
+//     const { error } = await supabase.auth.signOut()
+//     if (error) throw error
+//   }
+
+//   const value = {
+//     user,
+//     session,
+//     loading,
+//     signInWithGitHub,
+//     signOut,
+//   }
+
+//   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+// }
+
+// export function useAuth() {
+//   const context = useContext(AuthContext)
+//   if (context === undefined) {
+//     throw new Error('useAuth must be used within an AuthProvider')
+//   }
+//   return context
+// }

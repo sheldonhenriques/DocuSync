@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { diffLines } from 'diff'
 
 interface DiffModalProps {
   isOpen: boolean
@@ -17,138 +19,114 @@ interface DiffModalProps {
   onDiscard: () => void
 }
 
-const mockDocumentationDiff = {
-  original: `# Authentication Middleware
-
-## Overview
-Basic authentication for API routes.
-
-## Usage
-\`\`\`javascript
-app.use(auth);
-\`\`\`
-
-## Parameters
-- None`,
-  
-  proposed: `# Authentication Middleware
-
-## Overview
-JWT-based authentication middleware that provides secure access control for API routes. This middleware validates JSON Web Tokens and ensures only authenticated users can access protected endpoints.
-
-## Features
-- JWT token validation
-- Automatic token refresh
-- Role-based access control
-- Request rate limiting
-- Detailed error logging
-
-## Usage
-\`\`\`javascript
-import { authMiddleware } from './middleware/auth';
-
-// Apply to all routes
-app.use(authMiddleware);
-
-// Apply to specific routes
-app.use('/api/protected', authMiddleware);
-
-// With role-based access
-app.use('/api/admin', authMiddleware.requireRole('admin'));
-\`\`\`
-
-## Configuration
-\`\`\`javascript
-const authConfig = {
-  jwtSecret: process.env.JWT_SECRET,
-  tokenExpiry: '24h',
-  refreshThreshold: '2h',
-  rateLimitWindow: 15 * 60 * 1000, // 15 minutes
-  rateLimitMax: 100 // requests per window
-};
-\`\`\`
-
-## Parameters
-- \`req\`: Express request object
-- \`res\`: Express response object  
-- \`next\`: Express next function
-
-## Returns
-- Calls \`next()\` on successful authentication
-- Returns 401 error for invalid/missing tokens
-- Returns 403 error for insufficient permissions
-
-## Error Handling
-The middleware handles various authentication errors:
-- \`INVALID_TOKEN\`: Token is malformed or expired
-- \`MISSING_TOKEN\`: No token provided in request
-- \`INSUFFICIENT_PERMISSIONS\`: User lacks required role`
-}
-
 export default function DiffModal({ isOpen, onClose, prData, onApprove, onEdit, onDiscard }: DiffModalProps) {
   const [activeTab, setActiveTab] = useState<'side-by-side' | 'unified'>('side-by-side')
   const [showLineNumbers, setShowLineNumbers] = useState(true)
+  const [diff, setDiff] = useState<{ original: string, proposed: string }>({ original: '', proposed: '' })
+  const { githubToken } = useAuth()
 
-  if (!isOpen || !prData) return null
+  useEffect(() => {
+    const fetchDiff = async () => {
+      if (!prData) return
+      try {
+        const res = await fetch(`/api/github/diff?repo=${prData.repository}&pr=${prData.id}`, {
+          headers: {
+            Authorization: `Bearer ${githubToken}`,
+          }
+        })
+        const data = await res.json()
+        setDiff(data)
+      } catch (err) {
+        console.error('Failed to fetch diff:', err)
+      }
+    }
 
-  const renderSideBySideView = () => (
-    <div className="grid grid-cols-2 gap-4 h-full">
-      <div className="border rounded-lg overflow-hidden">
-        <div className="bg-red-50 border-b border-red-200 px-4 py-2">
-          <h4 className="text-sm font-medium text-red-800">Original Documentation</h4>
-        </div>
-        <div className="p-4 bg-white overflow-auto h-96">
-          <pre className="text-sm text-gray-800 whitespace-pre-wrap font-mono leading-relaxed">
-            {mockDocumentationDiff.original}
-          </pre>
-        </div>
-      </div>
-      
-      <div className="border rounded-lg overflow-hidden">
-        <div className="bg-green-50 border-b border-green-200 px-4 py-2">
-          <h4 className="text-sm font-medium text-green-800">Proposed Documentation</h4>
-        </div>
-        <div className="p-4 bg-white overflow-auto h-96">
-          <pre className="text-sm text-gray-800 whitespace-pre-wrap font-mono leading-relaxed">
-            {mockDocumentationDiff.proposed}
-          </pre>
-        </div>
-      </div>
-    </div>
-  )
+    if (isOpen && prData) fetchDiff()
+  }, [isOpen, prData, githubToken])
 
-  const renderUnifiedView = () => {
-    const originalLines = mockDocumentationDiff.original.split('\n')
-    const proposedLines = mockDocumentationDiff.proposed.split('\n')
-    
+  const renderSideBySideView = () => {
+    const changes = diffLines(diff.original, diff.proposed)
+
+    let originalLine = 1
+    let proposedLine = 1
+
+    const left = []
+    const right = []
+
+    changes.forEach((part) => {
+      const lines = part.value.split('\n')
+
+      lines.forEach((line, index) => {
+        if (line === '' && index === lines.length - 1) return
+
+        if (!part.added) {
+          left.push({
+            line,
+            type: part.removed ? 'removed' : 'common',
+            lineNumber: originalLine++,
+          })
+        }
+
+        if (!part.removed) {
+          right.push({
+            line,
+            type: part.added ? 'added' : 'common',
+            lineNumber: proposedLine++,
+          })
+        }
+      })
+    })
+
     return (
-      <div className="border rounded-lg overflow-hidden">
-        <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
-          <h4 className="text-sm font-medium text-gray-800">Unified Diff View</h4>
-        </div>
-        <div className="bg-white overflow-auto h-96">
-          <div className="font-mono text-sm">
-            {originalLines.map((line, index) => (
-              <div key={`original-${index}`} className="flex">
+      <div className="grid grid-cols-2 gap-4 h-full">
+        {/* Original (Left) */}
+        <div className="border rounded-lg overflow-hidden">
+          <div className="bg-red-50 border-b border-red-200 px-4 py-2">
+            <h4 className="text-sm font-medium text-red-800">Original Documentation</h4>
+          </div>
+          <div className="p-4 bg-white overflow-auto h-96 font-mono text-sm">
+            {left.map(({ line, type, lineNumber }, index) => (
+              <div key={`left-${index}`} className="flex">
                 {showLineNumbers && (
-                  <div className="w-12 text-gray-400 text-right pr-2 py-1 bg-red-50 border-r">
-                    {index + 1}
+                  <div className="w-12 text-gray-400 text-right pr-2 py-1 border-r">
+                    {lineNumber}
                   </div>
                 )}
-                <div className="flex-1 px-2 py-1 bg-red-50 text-red-800">
-                  <span className="text-red-600">- </span>{line}
+                <div
+                  className={`flex-1 px-2 py-1 ${
+                    type === 'removed'
+                      ? 'bg-red-50 text-red-800'
+                      : 'text-gray-800'
+                  }`}
+                >
+                  {type === 'removed' ? '- ' : '  '}{line}
                 </div>
               </div>
             ))}
-            {proposedLines.map((line, index) => (
-              <div key={`proposed-${index}`} className="flex">
+          </div>
+        </div>
+
+        {/* Proposed (Right) */}
+        <div className="border rounded-lg overflow-hidden">
+          <div className="bg-green-50 border-b border-green-200 px-4 py-2">
+            <h4 className="text-sm font-medium text-green-800">Proposed Documentation</h4>
+          </div>
+          <div className="p-4 bg-white overflow-auto h-96 font-mono text-sm">
+            {right.map(({ line, type, lineNumber }, index) => (
+              <div key={`right-${index}`} className="flex">
                 {showLineNumbers && (
-                  <div className="w-12 text-gray-400 text-right pr-2 py-1 bg-green-50 border-r">
-                    {index + 1}
+                  <div className="w-12 text-gray-400 text-right pr-2 py-1 border-r">
+                    {lineNumber}
                   </div>
                 )}
-                <div className="flex-1 px-2 py-1 bg-green-50 text-green-800">
-                  <span className="text-green-600">+ </span>{line}
+                <div
+                  className={`flex-1 px-2 py-1 ${
+                    type === 'added'
+                      ? 'bg-green-50 text-green-800'
+                      : 'text-gray-800'
+                  }`}
+                >
+                  {type === 'added' ? '+ ' : '  '}{line}
                 </div>
               </div>
             ))}
@@ -157,11 +135,59 @@ export default function DiffModal({ isOpen, onClose, prData, onApprove, onEdit, 
       </div>
     )
   }
+  
+
+  const renderUnifiedView = () => {
+    const changes = diffLines(diff.original, diff.proposed)
+    let lineNumber = 1
+
+    return (
+      <div className="border rounded-lg overflow-hidden">
+        <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
+          <h4 className="text-sm font-medium text-gray-800">Unified Diff View</h4>
+        </div>
+        <div className="bg-white overflow-auto h-96">
+          <div className="font-mono text-sm">
+            {changes.flatMap((part, index) => {
+              const lines = part.value.split('\n')
+              return lines.map((line, i) => {
+                if (!line && i === lines.length - 1) return null
+                const isAdded = part.added
+                const isRemoved = part.removed
+                const prefix = isAdded ? '+ ' : isRemoved ? '- ' : '  '
+                const lineClass = isAdded
+                  ? 'bg-green-50 text-green-800'
+                  : isRemoved
+                  ? 'bg-red-50 text-red-800'
+                  : 'bg-white text-gray-800'
+
+                const renderedLine = (
+                  <div key={`${index}-${i}`} className="flex">
+                    {showLineNumbers && (
+                      <div className="w-12 text-gray-400 text-right pr-2 py-1 border-r">
+                        {lineNumber++}
+                      </div>
+                    )}
+                    <div className={`flex-1 px-2 py-1 ${lineClass}`}>
+                      {prefix}{line}
+                    </div>
+                  </div>
+                )
+
+                return renderedLine
+              })
+            })}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isOpen || !prData) return null
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-5/6 flex flex-col">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Documentation Review</h2>
@@ -179,7 +205,6 @@ export default function DiffModal({ isOpen, onClose, prData, onApprove, onEdit, 
           </button>
         </div>
 
-        {/* Controls */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center gap-4">
             <div className="flex bg-white rounded-lg border">
@@ -204,7 +229,7 @@ export default function DiffModal({ isOpen, onClose, prData, onApprove, onEdit, 
                 Unified
               </button>
             </div>
-            
+
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -223,17 +248,15 @@ export default function DiffModal({ isOpen, onClose, prData, onApprove, onEdit, 
           </div>
         </div>
 
-        {/* Diff Content */}
         <div className="flex-1 p-6 overflow-hidden">
           {activeTab === 'side-by-side' ? renderSideBySideView() : renderUnifiedView()}
         </div>
 
-        {/* Action Buttons */}
         <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
           <div className="text-sm text-gray-600">
             AI-generated documentation based on code changes in this PR
           </div>
-          
+
           <div className="flex items-center gap-3">
             <button
               onClick={onDiscard}

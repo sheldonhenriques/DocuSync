@@ -35,7 +35,7 @@ function AuthErrorContent() {
             <ul className="text-sm text-yellow-700 text-left space-y-1">
               <li>• Check your Supabase environment variables in .env.local</li>
               <li>• Verify GitHub OAuth app configuration in Supabase</li>
-              <li>• Ensure redirect URL matches: http://localhost:3000/auth/callback</li>
+              <li>• Ensure redirect URL matches: http://10.104.1.21:3000/auth/callback</li>
               <li>• Check that GitHub provider is enabled in Supabase</li>
             </ul>
           </div>
