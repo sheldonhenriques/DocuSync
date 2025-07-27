@@ -25,23 +25,24 @@ export async function GET(req: Request) {
     const baseRef = pr.base.ref
     const headRef = pr.head.ref
 
+    const filePath = 'Readme.md'
     // Fetch list of changed files
-    const filesRes = await fetch(`https://api.github.com/repos/${repo}/pulls/${prNumber}/files`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    // const filesRes = await fetch(`https://api.github.com/repos/${repo}/pulls/${prNumber}/files`, {
+    //   headers: { Authorization: `Bearer ${token}` }
+    // })
 
-    const files = await filesRes.json()
+    // const files = await filesRes.json()
 
-    const markdownFile = files.find((f: any) => f.filename.toLowerCase().endsWith('.md'))
+    // const markdownFile = files.find((f: any) => f.filename.toLowerCase().endsWith('.md'))
 
-    if (!markdownFile) {
-      return NextResponse.json({
-        original: '(No markdown file found in this PR)',
-        proposed: '(No markdown file found in this PR)'
-      })
-    }
+    // if (!markdownFile) {
+    //   return NextResponse.json({
+    //     original: '(No markdown file found in this PR)',
+    //     proposed: '(No markdown file found in this PR)'
+    //   })
+    // }
 
-    const filePath = markdownFile.filename
+    // const filePath = markdownFile.filename
 
     // Fetch raw file contents from both branches
     const [baseRes, headRes] = await Promise.all([
