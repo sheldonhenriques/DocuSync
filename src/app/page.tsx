@@ -1,12 +1,11 @@
 
 'use client'
 
-import { useAuth } from '@/contexts/AuthContext'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Sidebar from '@/components/Sidebar'
 import InboxPRList from '@/components/InboxPRList'
 import DiffModal from '@/components/DiffModal'
+import ConnectionTest from '@/components/ConnectionTest'
 
 interface PRData {
   id: number
@@ -21,17 +20,9 @@ interface PRData {
 }
 
 export default function Home() {
-  const { user, loading } = useAuth()
-  const router = useRouter()
   const [selectedRepo, setSelectedRepo] = useState<string | null>('ea-prod')
   const [selectedPR, setSelectedPR] = useState<PRData | null>(null)
   const [isDiffModalOpen, setIsDiffModalOpen] = useState(false)
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login')
-    }
-  }, [user, loading, router])
 
   const handleSelectRepo = (repoId: string) => {
     setSelectedRepo(repoId)
@@ -64,23 +55,18 @@ export default function Home() {
     handleCloseDiff()
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return null
-  }
-
   return (
     <div className="h-screen flex bg-gray-50">
       <Sidebar selectedRepo={selectedRepo} onSelectRepo={handleSelectRepo} />
       
-      <InboxPRList selectedRepo={selectedRepo} onViewDiff={handleViewDiff} />
+      <div className="flex-1 flex flex-col">
+        <div className="p-4">
+          <ConnectionTest />
+        </div>
+        <div className="flex-1">
+          <InboxPRList selectedRepo={selectedRepo} onViewDiff={handleViewDiff} />
+        </div>
+      </div>
 
       <DiffModal
         isOpen={isDiffModalOpen}

@@ -1,0 +1,23 @@
+Collecting conductor-python
+  Downloading conductor_python-1.1.10-py3-none-any.whl.metadata (37 kB)
+Requirement already satisfied: certifi>=14.05.14 in /home/codespace/.local/lib/python3.12/site-packages (from conductor-python) (2025.7.9)
+Requirement already satisfied: prometheus-client>=0.13.1 in /home/codespace/.local/lib/python3.12/site-packages (from conductor-python) (0.22.1)
+Requirement already satisfied: six>=1.10 in /home/codespace/.local/lib/python3.12/site-packages (from conductor-python) (1.17.0)
+Requirement already satisfied: requests>=2.31.0 in /home/codespace/.local/lib/python3.12/site-packages (from conductor-python) (2.32.4)
+Requirement already satisfied: typing-extensions>=4.2.0 in /home/codespace/.local/lib/python3.12/site-packages (from conductor-python) (4.14.1)
+Collecting astor>=0.8.1 (from conductor-python)
+  Downloading astor-0.8.1-py2.py3-none-any.whl.metadata (4.2 kB)
+Collecting shortuuid>=1.0.11 (from conductor-python)
+  Downloading shortuuid-1.0.13-py3-none-any.whl.metadata (5.8 kB)
+Collecting dacite>=1.8.1 (from conductor-python)
+  Downloading dacite-1.9.2-py3-none-any.whl.metadata (17 kB)
+Requirement already satisfied: charset_normalizer<4,>=2 in /home/codespace/.local/lib/python3.12/site-packages (from requests>=2.31.0->conductor-python) (3.4.2)
+Requirement already satisfied: idna<4,>=2.5 in /home/codespace/.local/lib/python3.12/site-packages (from requests>=2.31.0->conductor-python) (3.10)
+Requirement already satisfied: urllib3<3,>=1.21.1 in /home/codespace/.local/lib/python3.12/site-packages (from requests>=2.31.0->conductor-python) (2.5.0)
+Downloading conductor_python-1.1.10-py3-none-any.whl (257 kB)
+Downloading astor-0.8.1-py2.py3-none-any.whl (27 kB)
+Downloading dacite-1.9.2-py3-none-any.whl (16 kB)
+Downloading shortuuid-1.0.13-py3-none-any.whl (10 kB)
+Installing collected packages: shortuuid, dacite, astor, conductor-python
+
+Successfully installed astor-0.8.1 conductor-python-1.1.10 dacite-1.9.2 shortuuid-1.0.13
